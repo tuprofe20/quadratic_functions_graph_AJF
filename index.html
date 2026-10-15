@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gran Premio • Funciones Cuadráticas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+
+    <style>
+        :root {
+            --bg-base: #090914;
+            --primary: #00f2fe;
+            --accent: #fe0979;
+            --track: #1a1a2e;
+            --neon-green: #39ff14;
+            --neon-orange: #ff5e00;
+            --neon-purple: #bf00ff;
+            --neon-yellow: #facc15;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-base);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Tipografía matemática EXCLUSIVA para ecuaciones y expresiones algebraicas */
+        .math-expr {
+            font-family: 'KaTeX_Main', 'Times New Roman', Georgia, serif;
+            letter-spacing: 0.02em;
+        }
+
+        .math-var {
+            font-family: 'KaTeX_Math', 'Times New Roman', Georgia, serif;
+            font-style: italic;
+        }
+
+        /* Animaciones del diseño de referencia */
+        @keyframes grid-flow {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100px; }
+        }
+        .animate-grid-flow {
+            animation: grid-flow 2.5s linear infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 30px rgba(0, 242, 254, 0.35); }
+            50% { box-shadow: 0 0 60px rgba(0, 242, 254, 0.7); }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Botones táctiles 3D del diseño adjunto */
+        .gp-btn {
+            position: relative;
+            font-weight: 900;
+            border-radius: 1rem;
+            box-shadow: 0 6px 0 0 rgba(0,0,0,0.65);
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+        }
+        .gp-btn:active {
+            box-shadow: 0 0px 0 0 rgba(0,0,0,0.65);
+            transform: translateY(6px);
+        }
+        .gp-btn-cyan {
+            background: linear-gradient(to bottom, #22d3ee, #0891b2);
+            color: #000000;
+            border-bottom: 4px solid #155e75;
+        }
+        .gp-btn-pink {
+            background: linear-gradient(to bottom, #ec4899, #be185d);
+            color: #ffffff;
+            border-bottom: 4px solid #831843;
+        }
+        .gp-btn-green {
+            background: linear-gradient(to bottom, #4ade80, #16a34a);
+            color: #000000;
+            border-bottom: 4px solid #166534;
+        }
+        .gp-btn-slate {
+            background: linear-gradient(to bottom, #475569, #1e293b);
+            color: #ffffff;
+            border-bottom: 4px solid #0f172a;
+        }
+
+        /* Inputs limpios y descansados para la vista */
+        .point-input {
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #334155;
+            color: #ffffff;
+            transition: all 0.2s ease;
+        }
+        .point-input:focus {
+            outline: none;
+            border-color: #00f2fe;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            background: #0f172a;
+        }
+        .point-input.valid-input {
+            border-color: #39ff14;
+            color: #39ff14;
+            background: rgba(20, 83, 45, 0.25);
+        }
+        .point-input.invalid-input {
+            border-color: #fe0979;
+            color: #fe0979;
+            background: rgba(131, 24, 67, 0.25);
+        }
+        .point-input.solving-input {
+            border-color: #facc15;
+            color: #facc15;
+            background: rgba(113, 63, 18, 0.3);
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #090914; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f2fe; }
+    </style>
+</head>
+<body class="min-h-screen font-sans select-none relative flex flex-col justify-between">
+
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0 bg-[#090914]">
+        <div class="absolute top-[5%] left-1/2 -translate-x-1/2 w-[750px] h-[750px] rounded-full bg-gradient-to-b from-pink-600 to-transparent opacity-15 blur-[110px]"></div>
+        <div class="absolute bottom-[-25%] left-[-50%] w-[200%] h-[110%] opacity-25 animate-grid-flow" style="
+            background-image: linear-gradient(rgba(0, 242, 254, 0.45) 2px, transparent 2px), linear-gradient(90deg, rgba(0, 242, 254, 0.45) 2px, transparent 2px);
+            background-size: 90px 90px;
+            transform: perspective(1000px) rotateX(70deg);
+            box-shadow: inset 0 120px 120px #090914;
+        "></div>
+    </div>
+
+    <section id="coverPortalSection" class="relative z-10 max-w-6xl w-full mx-auto my-auto p-4 sm:p-8 animate-fade-in">
+        <div class="bg-black/65 p-6 sm:p-12 rounded-[3rem] backdrop-blur-2xl border border-white/10 shadow-[0_0_120px_rgba(0,242,254,0.2)] flex flex-col items-center text-center">
+            <p class="text-cyan-400 font-bold tracking-[0.35em] uppercase mb-3 text-xs sm:text-sm drop-shadow-[0_0_10px_#00f2fe]">
+                HOJA DE TRABAJO 1 • SIMULADOR INTERACTIVO
+            </p>
+            <h1 class="text-3xl sm:text-6xl font-black mb-2 tracking-tight uppercase text-white" style="text-shadow: 0 0 35px rgba(0,242,254,0.6)">
+                GRÁFICA DE ECUACIONES
+            </h1>
+            <h2 class="text-4xl sm:text-7xl font-black leading-none mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-pink-500 to-yellow-400">
+                CUADRÁTICAS
+            </h2>
+            <p class="text-slate-300 text-base sm:text-xl max-w-2xl mb-8 font-medium">
+                Elige uno de los 4 ejercicios para completar los 10 puntos de la tabla, trazar la parábola en tiempo real y descubrir sus intersecciones y vértice.
+            </p>
+
+            <!-- Tarjetas de los 4 Ejercicios con Figuras Llamativas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                
+                <!-- Ejercicio 1 -->
+                <div onclick="enterExerciseFromCover(0)" class="group cursor-pointer bg-slate-900/80 hover:bg-slate-800/90 border-[3px] border-slate-700 hover:border-cyan-400 p-6 rounded-[2.2rem] transition-all duration-300 flex items-center gap-5 text-left shadow-xl hover:shadow-[0_0_35px_rgba(0,242,254,0.3)]">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-3xl bg-black border-2 border-cyan-400/60 flex items-center justify-center p-3 group-hover:scale-105 transition-transform">
+                        <svg viewBox="0 0 100 100" class="w-full h-full">
+                            <line x1="10" y1="50" x2="90" y2="50" stroke="#334155" stroke-width="3"/>
+                            <line x1="50" y1="10" x2="50" y2="90" stroke="#334155" stroke-width="3"/>
+                            <path d="M 18 18 Q 50 112 82 18" fill="none" stroke="#00f2fe" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="33" cy="50" r="6" fill="#fe0979"/>
+                            <circle cx="67" cy="50" r="6" fill="#fe0979"/>
+                            <circle cx="50" cy="65" r="7" fill="#facc15"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <span class="inline-block bg-cyan-950 text-cyan-300 border border-cyan-700 px-3 py-1 rounded-full font-black text-xs tracking-widest uppercase mb-2">
+                            EJERCICIO 1
+                        </span>
+                        <div class="math-expr text-3xl sm:text-4xl font-bold text-white mb-1">
+                            <span class="math-var">y</span> = <span class="math-var">x</span><sup>2</sup> − 4
+                        </div>
+                        <p class="text-slate-400 text-sm font-medium mb-3">Parábola simétrica con punto mínimo.</p>
+                        <span class="text-cyan-400 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform">
+                            INGRESAR AL EJERCICIO <i class="fa-solid fa-play text-xs"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Ejercicio 2 -->
+                <div onclick="enterExerciseFromCover(1)" class="group cursor-pointer bg-slate-900/80 hover:bg-slate-800/90 border-[3px] border-slate-700 hover:border-yellow-400 p-6 rounded-[2.2rem] transition-all duration-300 flex items-center gap-5 text-left shadow-xl hover:shadow-[0_0_35px_rgba(250,204,21,0.3)]">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-3xl bg-black border-2 border-yellow-400/60 flex items-center justify-center p-3 group-hover:scale-105 transition-transform">
+                        <svg viewBox="0 0 100 100" class="w-full h-full">
+                            <line x1="10" y1="72" x2="90" y2="72" stroke="#334155" stroke-width="3"/>
+                            <line x1="36" y1="10" x2="36" y2="90" stroke="#334155" stroke-width="3"/>
+                            <path d="M 22 18 Q 58 126 86 18" fill="none" stroke="#facc15" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="54" cy="72" r="7" fill="#39ff14"/>
+                            <circle cx="36" cy="52" r="6" fill="#00f2fe"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <span class="inline-block bg-yellow-950 text-yellow-300 border border-yellow-700 px-3 py-1 rounded-full font-black text-xs tracking-widest uppercase mb-2">
+                            EJERCICIO 2
+                        </span>
+                        <div class="math-expr text-3xl sm:text-4xl font-bold text-white mb-1">
+                            <span class="math-var">y</span> = <span class="math-var">x</span><sup>2</sup> − 2<span class="math-var">x</span> + 1
+                        </div>
+                        <p class="text-slate-400 text-sm font-medium mb-3">Trinomio cuadrado perfecto tangente al eje X.</p>
+                        <span class="text-yellow-400 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform">
+                            INGRESAR AL EJERCICIO <i class="fa-solid fa-play text-xs"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Ejercicio 3 -->
+                <div onclick="enterExerciseFromCover(2)" class="group cursor-pointer bg-slate-900/80 hover:bg-slate-800/90 border-[3px] border-slate-700 hover:border-pink-500 p-6 rounded-[2.2rem] transition-all duration-300 flex items-center gap-5 text-left shadow-xl hover:shadow-[0_0_35px_rgba(254,9,121,0.3)]">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-3xl bg-black border-2 border-pink-500/60 flex items-center justify-center p-3 group-hover:scale-105 transition-transform">
+                        <svg viewBox="0 0 100 100" class="w-full h-full">
+                            <line x1="10" y1="50" x2="90" y2="50" stroke="#334155" stroke-width="3"/>
+                            <line x1="32" y1="10" x2="32" y2="90" stroke="#334155" stroke-width="3"/>
+                            <path d="M 18 84 Q 54 -22 86 84" fill="none" stroke="#fe0979" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="52" cy="31" r="7" fill="#facc15"/>
+                            <circle cx="32" cy="50" r="6" fill="#39ff14"/>
+                            <circle cx="72" cy="50" r="6" fill="#39ff14"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <span class="inline-block bg-pink-950 text-pink-300 border border-pink-700 px-3 py-1 rounded-full font-black text-xs tracking-widest uppercase mb-2">
+                            EJERCICIO 3
+                        </span>
+                        <div class="math-expr text-3xl sm:text-4xl font-bold text-white mb-1">
+                            <span class="math-var">y</span> = −½<span class="math-var">x</span><sup>2</sup> + 2<span class="math-var">x</span>
+                        </div>
+                        <p class="text-slate-400 text-sm font-medium mb-3">Parábola cóncava hacia abajo con punto máximo.</p>
+                        <span class="text-pink-400 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform">
+                            INGRESAR AL EJERCICIO <i class="fa-solid fa-play text-xs"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Ejercicio 4 -->
+                <div onclick="enterExerciseFromCover(3)" class="group cursor-pointer bg-slate-900/80 hover:bg-slate-800/90 border-[3px] border-slate-700 hover:border-green-400 p-6 rounded-[2.2rem] transition-all duration-300 flex items-center gap-5 text-left shadow-xl hover:shadow-[0_0_35px_rgba(57,255,20,0.3)]">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-3xl bg-black border-2 border-green-400/60 flex items-center justify-center p-3 group-hover:scale-105 transition-transform">
+                        <svg viewBox="0 0 100 100" class="w-full h-full">
+                            <line x1="10" y1="24" x2="90" y2="24" stroke="#fe0979" stroke-width="3"/>
+                            <line x1="72" y1="10" x2="72" y2="90" stroke="#334155" stroke-width="3"/>
+                            <path d="M 18 86 Q 45 -2 72 86" fill="none" stroke="#39ff14" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="45" cy="40" r="7" fill="#facc15"/>
+                            <circle cx="72" cy="78" r="6" fill="#00f2fe"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <span class="inline-block bg-green-950 text-green-300 border border-green-700 px-3 py-1 rounded-full font-black text-xs tracking-widest uppercase mb-2">
+                            EJERCICIO 4
+                        </span>
+                        <div class="math-expr text-3xl sm:text-4xl font-bold text-white mb-1">
+                            <span class="math-var">y</span> = −3<span class="math-var">x</span><sup>2</sup> − 18<span class="math-var">x</span> − 32
+                        </div>
+                        <p class="text-slate-400 text-sm font-medium mb-3">Parábola invertida bajo el eje horizontal.</p>
+                        <span class="text-green-400 font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2 group-hover:translate-x-2 transition-transform">
+                            INGRESAR AL EJERCICIO <i class="fa-solid fa-play text-xs"></i>
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <div id="labWorkspaceWrapper" class="hidden relative z-10 flex-1 flex flex-col justify-between max-w-[1440px] w-full mx-auto p-3 sm:p-6 gap-5">
+        
+        <!-- HUD Header Superior -->
+        <header class="bg-black/60 backdrop-blur-2xl border border-white/10 rounded-[2rem] px-4 py-3 sm:px-8 sm:py-4 flex flex-wrap items-center justify-between gap-4 shadow-2xl">
+            <div class="flex items-center gap-4">
+                <button onclick="openCoverPortal()" class="gp-btn gp-btn-slate px-4 py-2.5 text-xs sm:text-sm gap-2">
+                    <i class="fa-solid fa-table-cells-large text-cyan-400"></i>
+                    <span>PORTADA</span>
+                </button>
+                <div>
+                    <h1 class="text-lg sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 uppercase">
+                        FUNCIONES CUADRÁTICAS
+                    </h1>
+                    <p id="exerciseTitleBadge" class="text-xs text-slate-400 font-bold tracking-widest uppercase">
+                        EJERCICIO 1 DE 4
+                    </p>
+                </div>
+            </div>
+
+            <!-- Selector rápido de los 4 ejercicios -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="selectExercise(0)" id="exBtn-0" class="px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all">
+                    1) <span class="math-expr"><span class="math-var">y</span> = <span class="math-var">x</span><sup>2</sup> − 4</span>
+                </button>
+                <button onclick="selectExercise(1)" id="exBtn-1" class="px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all">
+                    2) <span class="math-expr"><span class="math-var">y</span> = <span class="math-var">x</span><sup>2</sup> − 2<span class="math-var">x</span> + 1</span>
+                </button>
+                <button onclick="selectExercise(2)" id="exBtn-2" class="px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all">
+                    3) <span class="math-expr"><span class="math-var">y</span> = −½<span class="math-var">x</span><sup>2</sup> + 2<span class="math-var">x</span></span>
+                </button>
+                <button onclick="selectExercise(3)" id="exBtn-3" class="px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all">
+                    4) <span class="math-expr"><span class="math-var">y</span> = −3<span class="math-var">x</span><sup>2</sup> − 18<span class="math-var">x</span> − 32</span>
+                </button>
+            </div>
+
+            <!-- Control de Sonido -->
+            <button id="soundToggleBtn" onclick="toggleAudio()" class="p-3 sm:px-4 sm:py-2.5 text-white bg-slate-800 rounded-2xl hover:bg-slate-700 transition-colors border-2 border-slate-600 flex items-center gap-2 font-bold text-xs sm:text-sm">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-cyan-400"></i>
+                <span id="soundText" class="hidden sm:inline">SONIDO ON</span>
+            </button>
+        </header>
+
+        <!-- Barra de Estado: Rostro del Robot 3D + Ecuación Actual -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            
+            <!-- Tutor Robot 3D (Solo rostro expresivo) -->
+            <div class="lg:col-span-8 bg-slate-900/80 backdrop-blur-xl border-2 border-slate-700 rounded-[2.2rem] p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-5 shadow-xl">
+                <div class="relative w-32 h-32 sm:w-36 sm:h-36 shrink-0 rounded-3xl bg-black border-[3px] border-cyan-400 shadow-[0_0_25px_rgba(0,242,254,0.35)] overflow-hidden cursor-grab active:cursor-grabbing" id="robotCanvasContainer" title="Arrastra para mover el rostro 3D">
+                    <div class="absolute top-2 left-2.5 z-10 flex items-center gap-1.5 bg-black/80 px-2.5 py-0.5 rounded-full border border-cyan-400/60">
+                        <span id="robotStatusDot" class="w-2 h-2 rounded-full bg-[#39ff14] animate-ping"></span>
+                        <span id="robotMoodBadgeText" class="text-[10px] font-black tracking-wider text-cyan-300 uppercase">ATENTO</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col justify-between w-full h-full gap-3">
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="bg-cyan-950 text-cyan-300 border border-cyan-800 px-3 py-0.5 rounded-full font-black text-xs tracking-widest uppercase">
+                                COPILOTO IA • GUÍA PASO A PASO
+                            </span>
+                            <span id="stepBadge" class="text-xs font-black text-yellow-400 tracking-wider uppercase">
+                                PASO 1 DE 3
+                            </span>
+                        </div>
+                        <div id="robotMessage" class="text-sm sm:text-base font-bold text-slate-100 leading-relaxed bg-black/50 p-3.5 rounded-2xl border border-white/10 min-h-[64px] flex items-center">
+                            ¡Hola! Completa los 10 valores de la columna Y o usa el botón de resolver paso a paso para ver cada operación.
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <button onclick="autoCompleteDemoOneRow()" class="gp-btn gp-btn-cyan px-4 py-2 text-xs sm:text-sm gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> +1 FILA PASO A PASO
+                        </button>
+                        <button onclick="completeAllRows()" class="gp-btn gp-btn-pink px-4 py-2 text-xs sm:text-sm gap-2">
+                            <i class="fa-solid fa-bolt"></i> RESOLVER LOS 10 PUNTOS
+                        </button>
+                        <button onclick="resetCurrentExercise()" class="gp-btn gp-btn-slate px-4 py-2 text-xs sm:text-sm gap-2 ml-auto">
+                            <i class="fa-solid fa-rotate-left"></i> REINICIAR
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ecuación Activa y Progreso de los 10 puntos -->
+            <div class="lg:col-span-4 bg-slate-900/80 backdrop-blur-xl border-2 border-slate-700 rounded-[2.2rem] p-5 flex flex-col justify-between shadow-xl">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-slate-400 tracking-widest uppercase">FUNCIÓN ACTIVA</span>
+                    <span id="scaleBadge" class="text-xs font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-800 px-3 py-1 rounded-full">
+                        10 Pares Ordenados
+                    </span>
+                </div>
+
+                <div class="my-3 py-4 px-5 rounded-3xl bg-black border-2 border-yellow-400/80 text-center shadow-[0_0_25px_rgba(250,204,21,0.15)]">
+                    <div id="equationDisplay" class="math-expr text-3xl sm:text-4xl font-bold text-yellow-400 tracking-wide">
+                        <span class="math-var">y</span> = <span class="math-var">x</span><sup>2</sup> − 4
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-black text-slate-300 uppercase tracking-wider">PUNTOS GRAFICADOS</span>
+                        <span id="pointsCounterText" class="text-sm sm:text-base font-black text-[#39ff14]">0 / 10 PUNTOS</span>
+                    </div>
+                    <div class="w-full h-3.5 bg-black rounded-full overflow-hidden border border-slate-700 p-0.5">
+                        <div id="progressBar" class="h-full bg-gradient-to-r from-cyan-400 via-pink-500 to-green-400 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Zona Central: Tabla de 10 Puntos (Izquierda) + Plano Cartesiano Limpio (Derecha) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            
+            <!-- Tabla de 10 Pares Ordenados con Paso a Paso en Y -->
+            <div class="lg:col-span-6 bg-slate-900/80 backdrop-blur-xl border-2 border-slate-700 rounded-[2.2rem] p-4 sm:p-6 flex flex-col shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-black text-white uppercase tracking-wide">
+                            TABLA DE 10 VALORES
+                        </h2>
+                        <p class="text-xs sm:text-sm text-slate-400 font-medium">
+                            Ingresa el valor de <span class="math-expr math-var text-pink-400 font-bold">y</span> para cada <span class="math-expr math-var text-cyan-400 font-bold">x</span> y observa la operación paso a paso.
+                        </p>
+                    </div>
+                    <button onclick="giveNextHint()" class="gp-btn gp-btn-slate px-3.5 py-2 text-xs gap-1.5 shrink-0">
+                        <i class="fa-solid fa-lightbulb text-yellow-400"></i> PISTA
+                    </button>
+                </div>
+
+                <!-- Cabecera de la Tabla -->
+                <div class="grid grid-cols-12 gap-2 px-3 py-2.5 bg-black/70 rounded-2xl text-xs font-black uppercase tracking-wider text-center border border-white/10 mb-2">
+                    <div class="col-span-1 text-slate-400">#</div>
+                    <div class="col-span-2 text-cyan-400">Valor <span class="math-expr math-var">x</span></div>
+                    <div class="col-span-7 text-pink-400">Operación Paso a Paso y Valor <span class="math-expr math-var">y</span></div>
+                    <div class="col-span-2 text-green-400">Estado</div>
+                </div>
+
+                <!-- Contenedor de las 10 Filas -->
+                <div id="tableRowsContainer" class="divide-y divide-slate-800 max-h-[430px] overflow-y-auto pr-1 space-y-1.5">
+                    <!-- Filas generadas por JS -->
+                </div>
+            </div>
+
+            <!-- Plano Cartesiano Limpio (Sin amontonar textos de resultados arriba) -->
+            <div class="lg:col-span-6 bg-slate-900/80 backdrop-blur-xl border-2 border-slate-700 rounded-[2.2rem] p-4 sm:p-6 flex flex-col justify-between shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-black text-white uppercase tracking-wide">
+                            PLANO CARTESIANO
+                        </h2>
+                        <p class="text-xs sm:text-sm text-slate-400 font-medium">
+                            Los puntos aparecen al instante. Al completar los 10, se traza la parábola.
+                        </p>
+                    </div>
+
+                    <!-- Leyenda sencilla por colores -->
+                    <div class="flex flex-wrap items-center gap-3 text-xs font-bold bg-black/50 px-3.5 py-2 rounded-2xl border border-white/10">
+                        <span class="flex items-center gap-1.5 text-[#39ff14]">
+                            <span class="w-3 h-3 rounded-full bg-[#39ff14] inline-block"></span> Puntos
+                        </span>
+                        <span class="flex items-center gap-1.5 text-[#facc15]">
+                            <span class="w-3 h-3 rounded-full bg-[#facc15] inline-block"></span> Vértice
+                        </span>
+                        <span class="flex items-center gap-1.5 text-[#fe0979]">
+                            <span class="w-3 h-3 rounded-full bg-[#fe0979] inline-block"></span> Corte X
+                        </span>
+                        <span class="flex items-center gap-1.5 text-[#00f2fe]">
+                            <span class="w-3 h-3 rounded-full bg-[#00f2fe] inline-block"></span> Corte Y
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Lienzo del Gráfico 2D -->
+                <div class="relative w-full h-[380px] sm:h-[430px] bg-[#070710] rounded-3xl border-2 border-slate-700 overflow-hidden shadow-inner" id="graphWrapper">
+                    <canvas id="cartesianCanvas" class="w-full h-full block touch-none"></canvas>
+
+                    <div id="hoverCoordsBadge" class="hidden absolute top-3 left-3 bg-black/90 border border-cyan-400 text-cyan-300 math-expr text-xs sm:text-sm px-3 py-1 rounded-xl pointer-events-none">
+                        (0, 0)
+                    </div>
+
+                    <div id="parabolaCompleteBanner" class="hidden absolute top-3 right-3 bg-[#39ff14] text-black font-black text-xs px-3.5 py-1.5 rounded-full shadow-[0_0_20px_#39ff14] uppercase tracking-wider">
+                        ¡PARÁBOLA TRAZADA!
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ÚNICO PANEL DE RESULTADOS (Debajo, amplio, limpio y sin duplicarse arriba) -->
+        <section id="resultsPanel" class="bg-slate-900/90 backdrop-blur-2xl border-2 border-slate-700 rounded-[2.2rem] p-5 sm:p-7 shadow-2xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b border-white/10">
+                <div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white uppercase tracking-wide">
+                        RESULTADOS DE LA GRÁFICA CUADRÁTICA
+                    </h3>
+                    <p id="resultsStatusSubtitle" class="text-xs sm:text-sm font-bold text-slate-400 mt-0.5">
+                        Completa los 10 puntos de la tabla para desbloquear las coordenadas de intersección y el vértice.
+                    </p>
+                </div>
+                <span id="symmetryBadge" class="text-xs sm:text-sm font-black px-4 py-2 rounded-full bg-black border-2 border-cyan-400 text-cyan-400 self-start sm:self-center">
+                    EJE DE SIMETRÍA: PENDIENTE
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- Tarjeta 1: Intersección Eje X -->
+                <div class="bg-black/70 border-2 border-[#fe0979] rounded-3xl p-5 flex flex-col justify-between shadow-[0_0_25px_rgba(254,9,121,0.12)]">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs sm:text-sm font-black text-[#fe0979] uppercase tracking-wider">
+                            INTERSECCIÓN CON EL EJE X
+                        </span>
+                        <span class="w-3.5 h-3.5 rounded-full bg-[#fe0979] shadow-[0_0_10px_#fe0979]"></span>
+                    </div>
+                    <div id="resXIntercept" class="math-expr text-2xl sm:text-3xl font-bold text-white my-2">
+                        Completa 10 puntos
+                    </div>
+                    <p id="resXInterceptDesc" class="text-xs sm:text-sm text-slate-400 font-medium">
+                        Puntos donde la parábola corta al eje horizontal (<span class="math-expr"><span class="math-var">y</span> = 0</span>).
+                    </p>
+                </div>
+
+                <!-- Tarjeta 2: Intersección Eje Y -->
+                <div class="bg-black/70 border-2 border-[#00f2fe] rounded-3xl p-5 flex flex-col justify-between shadow-[0_0_25px_rgba(0,242,254,0.12)]">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs sm:text-sm font-black text-[#00f2fe] uppercase tracking-wider">
+                            INTERSECCIÓN CON EL EJE Y
+                        </span>
+                        <span class="w-3.5 h-3.5 rounded-full bg-[#00f2fe] shadow-[0_0_10px_#00f2fe]"></span>
+                    </div>
+                    <div id="resYIntercept" class="math-expr text-2xl sm:text-3xl font-bold text-white my-2">
+                        Completa 10 puntos
+                    </div>
+                    <p id="resYInterceptDesc" class="text-xs sm:text-sm text-slate-400 font-medium">
+                        Punto donde la parábola corta al eje vertical (<span class="math-expr"><span class="math-var">x</span> = 0</span>).
+                    </p>
+                </div>
+
+                <!-- Tarjeta 3: Vértice de la Parábola -->
+                <div class="bg-black/70 border-2 border-[#facc15] rounded-3xl p-5 flex flex-col justify-between shadow-[0_0_25px_rgba(250,204,21,0.12)]">
+                    <div class="flex items-center justify-between mb-2">
+                        <span id="vertexTypeLabel" class="text-xs sm:text-sm font-black text-[#facc15] uppercase tracking-wider">
+                            VÉRTICE DE LA PARÁBOLA
+                        </span>
+                        <span class="w-3.5 h-3.5 rounded-full bg-[#facc15] shadow-[0_0_10px_#facc15]"></span>
+                    </div>
+                    <div id="resVertex" class="math-expr text-2xl sm:text-3xl font-bold text-white my-2">
+                        Completa 10 puntos
+                    </div>
+                    <p id="resVertexDesc" class="text-xs sm:text-sm text-slate-400 font-medium">
+                        Coordenada del punto mínimo o máximo de la función cuadrática.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const fmtParen = (n) => (n < 0 ? `(${n})` : `${n}`);
+        const fmtSigned = (n) => (n >= 0 ? `+ ${n}` : `− ${Math.abs(n)}`);
+
+        const EXERCISES = [
+            {
+                id: 1,
+                title: "EJERCICIO 1 DE 4 • HOJA DE TRABAJO 1",
+                equationHTML: `<span class="math-var">y</span> = <span class="math-var">x</span><sup>2</sup> − 4`,
+                a: 1, b: 0, c: -4,
+                fn: (x) => (x * x) - 4,
+                suggestedX: [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
+                rangeNote: "Rango: −4 ≤ x ≤ 5",
+                xMin: -6, xMax: 6,
+                yMin: -6, yMax: 23,
+                xStep: 1, yStep: 2,
+                vertex: { x: 0, y: -4, type: "Punto Mínimo" },
+                symmetry: "x = 0",
+                xInterceptsText: "(−2, 0) y (2, 0)",
+                xInterceptsDetail: "La gráfica corta al eje X en dos puntos simétricos: (−2, 0) y (2, 0).",
+                yInterceptText: "(0, −4)",
+                yInterceptDetail: "Cuando x = 0, y = (0)² − 4 = −4. Coordenada (0, −4).",
+                xInterceptPoints: [{ x: -2, y: 0 }, { x: 2, y: 0 }],
+                yInterceptPoint: { x: 0, y: -4 },
+                getStepsForX: (x) => {
+                    const sq = Number((x * x).toFixed(2));
+                    const res = Number((sq - 4).toFixed(2));
+                    return [
+                        `y = ${fmtParen(x)}² − 4`,
+                        `y = ${sq} − 4`,
+                        `y = ${res}`
+                    ];
+                }
+            },
+            {
+                id: 2,
+                title: "EJERCICIO 2 DE 4 • HOJA DE TRABAJO 1",
+                equationHTML: `<span class="math-var">y</span> = <span class="math-var">x</span><sup>2</sup> − 2<span class="math-var">x</span> + 1`,
+                a: 1, b: -2, c: 1,
+                fn: (x) => (x * x) - (2 * x) + 1,
+                suggestedX: [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6],
+                rangeNote: "Rango: −3 ≤ x ≤ 6",
+                xMin: -4, xMax: 7,
+                yMin: -3, yMax: 27,
+                xStep: 1, yStep: 3,
+                vertex: { x: 1, y: 0, type: "Punto Mínimo" },
+                symmetry: "x = 1",
+                xInterceptsText: "(1, 0)",
+                xInterceptsDetail: "Toca al eje X en un único punto (1, 0), que coincide con su vértice.",
+                yInterceptText: "(0, 1)",
+                yInterceptDetail: "Cuando x = 0, y = (0)² − 2(0) + 1 = 1. Coordenada (0, 1).",
+                xInterceptPoints: [{ x: 1, y: 0 }],
+                yInterceptPoint: { x: 0, y: 1 },
+                getStepsForX: (x) => {
+                    const sq = Number((x * x).toFixed(2));
+                    const mid = Number((-2 * x).toFixed(2));
+                    const res = Number((sq + mid + 1).toFixed(2));
+                    return [
+                        `y = ${fmtParen(x)}² − 2${fmtParen(x)} + 1`,
+                        `y = ${sq} ${fmtSigned(mid)} + 1`,
+                        `y = ${res}`
+                    ];
+                }
+            },
+            {
+                id: 3,
+                title: "EJERCICIO 3 DE 4 • HOJA DE TRABAJO 1",
+                equationHTML: `<span class="math-var">y</span> = −½<span class="math-var">x</span><sup>2</sup> + 2<span class="math-var">x</span>`,
+                a: -0.5, b: 2, c: 0,
+                fn: (x) => (-0.5 * x * x) + (2 * x),
+                suggestedX: [-2, -1, 0, 1, 2, 3, 4, 5, 6, 7],
+                rangeNote: "Rango: −2 ≤ x ≤ 7",
+                xMin: -3, xMax: 8,
+                yMin: -12, yMax: 4,
+                xStep: 1, yStep: 2,
+                vertex: { x: 2, y: 2, type: "Punto Máximo" },
+                symmetry: "x = 2",
+                xInterceptsText: "(0, 0) y (4, 0)",
+                xInterceptsDetail: "Corta al eje X en dos puntos: el origen (0, 0) y el punto (4, 0).",
+                yInterceptText: "(0, 0)",
+                yInterceptDetail: "Cuando x = 0, y = −½(0)² + 2(0) = 0. Corta en (0, 0).",
+                xInterceptPoints: [{ x: 0, y: 0 }, { x: 4, y: 0 }],
+                yInterceptPoint: { x: 0, y: 0 },
+                getStepsForX: (x) => {
+                    const sq = Number((x * x).toFixed(2));
+                    const first = Number((-0.5 * sq).toFixed(2));
+                    const second = Number((2 * x).toFixed(2));
+                    const res = Number((first + second).toFixed(2));
+                    return [
+                        `y = −0.5${fmtParen(x)}² + 2${fmtParen(x)}`,
+                        `y = ${first} ${fmtSigned(second)}`,
+                        `y = ${res}`
+                    ];
+                }
+            },
+            {
+                id: 4,
+                title: "EJERCICIO 4 DE 4 • HOJA DE TRABAJO 1",
+                equationHTML: `<span class="math-var">y</span> = −3<span class="math-var">x</span><sup>2</sup> − 18<span class="math-var">x</span> − 32`,
+                a: -3, b: -18, c: -32,
+                fn: (x) => (-3 * x * x) - (18 * x) - 32,
+                suggestedX: [-7, -6, -5, -4, -3, -2, -1, 0, 1, 2],
+                rangeNote: "Rango: −7 ≤ x ≤ 2",
+                xMin: -8, xMax: 3,
+                yMin: -85, yMax: 10,
+                xStep: 1, yStep: 10,
+                vertex: { x: -3, y: -5, type: "Punto Máximo" },
+                symmetry: "x = −3",
+                xInterceptsText: "No corta al eje X",
+                xInterceptsDetail: "0 puntos de corte con el eje X (su punto máximo es y = −5, siempre debajo del eje X).",
+                yInterceptText: "(0, −32)",
+                yInterceptDetail: "Cuando x = 0, y = −3(0)² − 18(0) − 32 = −32. Coordenada (0, −32).",
+                xInterceptPoints: [],
+                yInterceptPoint: { x: 0, y: -32 },
+                getStepsForX: (x) => {
+                    const sq = Number((x * x).toFixed(2));
+                    const t1 = Number((-3 * sq).toFixed(2));
+                    const t2 = Number((-18 * x).toFixed(2));
+                    const res = Number((t1 + t2 - 32).toFixed(2));
+                    return [
+                        `y = −3${fmtParen(x)}² − 18${fmtParen(x)} − 32`,
+                        `y = ${t1} ${fmtSigned(t2)} − 32`,
+                        `y = ${res}`
+                    ];
+                }
+            }
+        ];
+
+        let currentExIndex = 0;
+        let rowsState = [];
+        let parabolaProgress = 0;
+        let parabolaAnimFrame = null;
+        let autoSolveTimers = [];
+
+        function clearAutoSolveTimers() {
+            autoSolveTimers.forEach(t => clearTimeout(t));
+            autoSolveTimers = [];
+        }
+
+        function enterExerciseFromCover(index) {
+            document.getElementById('coverPortalSection').classList.add('hidden');
+            document.getElementById('labWorkspaceWrapper').classList.remove('hidden');
+            selectExercise(index, false);
+            setTimeout(() => {
+                onResizeRobotAndGraph();
+            }, 60);
+        }
+
+        function openCoverPortal() {
+            clearAutoSolveTimers();
+            playSound('switch');
+            document.getElementById('labWorkspaceWrapper').classList.add('hidden');
+            document.getElementById('coverPortalSection').classList.remove('hidden');
+        }
+
+        let audioEnabled = true;
+        let synth = null;
+        let polySynth = null;
+
+        async function ensureAudioReady() {
+            if (!audioEnabled) return false;
+            try {
+                if (Tone.context.state !== 'running') {
+                    await Tone.start();
+                }
+                if (!synth) {
+                    synth = new Tone.Synth({
+                        oscillator: { type: "triangle" },
+                        envelope: { attack: 0.01, decay: 0.12, sustain: 0.05, release: 0.2 }
+                    }).toDestination();
+                }
+                if (!polySynth) {
+                    polySynth = new Tone.PolySynth(Tone.Synth, {
+                        oscillator: { type: "sawtooth" },
+                        envelope: { attack: 0.02, decay: 0.2, sustain: 0.15, release: 0.4 }
+                    }).toDestination();
+                    polySynth.volume.value = -8;
+                }
+                return true;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        async function playSound(type, stepIndex = 0) {
+            if (!audioEnabled) return;
+            const ready = await ensureAudioReady();
+            if (!ready) return;
+
+            const now = Tone.now();
+            const scaleNotes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5", "E5"];
+
+            try {
+                if (type === 'pointValid') {
+                    const note = scaleNotes[stepIndex % scaleNotes.length];
+                    synth.triggerAttackRelease(note, "16n", now);
+                    setRobotMood('happy');
+                } else if (type === 'error') {
+                    synth.triggerAttackRelease("F#2", "8n", now);
+                    setRobotMood('alert');
+                } else if (type === 'switch') {
+                    synth.triggerAttackRelease("A4", "32n", now);
+                    synth.triggerAttackRelease("E5", "16n", now + 0.07);
+                } else if (type === 'completeParabola') {
+                    polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
+                    polySynth.triggerAttackRelease(["D4", "F#4", "A4", "D5"], "8n", now + 0.18);
+                    polySynth.triggerAttackRelease(["G4", "B4", "D5", "G5"], "4n", now + 0.36);
+                    setRobotMood('celebrate');
+                }
+            } catch (e) {}
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+            if (audioEnabled) {
+                icon.className = "fa-solid fa-volume-high text-cyan-400";
+                if (text) text.textContent = "SONIDO ON";
+                playSound('switch');
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-pink-500";
+                if (text) text.textContent = "SILENCIO";
+            }
+        }
+
+        let scene, camera, renderer, headGroup, leftEye, rightEye, leftBrow, rightBrow, mouthSegments = [], antennaBall;
+        let robotMood = 'idle';
+        let moodTimer = 0;
+        let isDraggingRobot = false;
+        let prevRobotMouseX = 0;
+        let prevRobotMouseY = 0;
+
+        function initRobot3D() {
+            const container = document.getElementById('robotCanvasContainer');
+            const width = container.clientWidth || 144;
+            const height = container.clientHeight || 144;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
+            camera.position.set(0, 0.05, 3.35);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(ambientLight);
+
+            const cyanLight = new THREE.PointLight(0x00f2fe, 2.5, 12);
+            cyanLight.position.set(2.5, 2.5, 3.5);
+            scene.add(cyanLight);
+
+            const pinkLight = new THREE.PointLight(0xfe0979, 2.2, 12);
+            pinkLight.position.set(-2.5, -1.8, 3);
+            scene.add(pinkLight);
+
+            headGroup = new THREE.Group();
+            scene.add(headGroup);
+
+            const helmetMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75, roughness: 0.25 });
+            const trimCyanMat = new THREE.MeshStandardMaterial({ color: 0x00f2fe, emissive: 0x00f2fe, emissiveIntensity: 0.75 });
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xfacc15, emissiveIntensity: 0.85 });
+            const greenMat = new THREE.MeshStandardMaterial({ color: 0x39ff14, emissive: 0x39ff14, emissiveIntensity: 0.9 });
+            const pinkMat = new THREE.MeshStandardMaterial({ color: 0xfe0979, emissive: 0xfe0979, emissiveIntensity: 0.9 });
+
+            const skullMesh = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.42, 1.25), helmetMat);
+            headGroup.add(skullMesh);
+
+            const crestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.22, 1.32), trimCyanMat);
+            crestMesh.position.set(0, 0.74, 0);
+            headGroup.add(crestMesh);
+
+            const screenMesh = new THREE.Mesh(new THREE.BoxGeometry(1.52, 1.06, 0.12), new THREE.MeshBasicMaterial({ color: 0x05050d }));
+            screenMesh.position.set(0, -0.02, 0.61);
+            headGroup.add(screenMesh);
+
+            const eyeGeo = new THREE.SphereGeometry(0.19, 24, 24);
+            leftEye = new THREE.Mesh(eyeGeo, greenMat.clone());
+            leftEye.scale.set(1.1, 1.15, 0.45);
+            leftEye.position.set(-0.38, 0.12, 0.66);
+            headGroup.add(leftEye);
+
+            rightEye = new THREE.Mesh(eyeGeo, greenMat.clone());
+            rightEye.scale.set(1.1, 1.15, 0.45);
+            rightEye.position.set(0.38, 0.12, 0.66);
+            headGroup.add(rightEye);
+
+            const browGeo = new THREE.BoxGeometry(0.36, 0.065, 0.08);
+            leftBrow = new THREE.Mesh(browGeo, goldMat.clone());
+            leftBrow.position.set(-0.38, 0.36, 0.69);
+            headGroup.add(leftBrow);
+
+            rightBrow = new THREE.Mesh(browGeo, goldMat.clone());
+            rightBrow.position.set(0.38, 0.36, 0.69);
+            headGroup.add(rightBrow);
+
+            mouthSegments = [];
+            const segGeo = new THREE.BoxGeometry(0.13, 0.07, 0.08);
+            [-0.32, -0.16, 0, 0.16, 0.32].forEach((xPos, i) => {
+                const seg = new THREE.Mesh(segGeo, trimCyanMat.clone());
+                const curveY = (i === 0 || i === 4) ? -0.24 : (i === 1 || i === 3) ? -0.30 : -0.32;
+                seg.position.set(xPos, curveY, 0.68);
+                headGroup.add(seg);
+                mouthSegments.push(seg);
+            });
+
+            const earGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.18, 20);
+            earGeo.rotateZ(Math.PI / 2);
+            const leftEar = new THREE.Mesh(earGeo, trimCyanMat);
+            leftEar.position.set(-0.95, 0, 0);
+            headGroup.add(leftEar);
+
+            const rightEar = new THREE.Mesh(earGeo, trimCyanMat);
+            rightEar.position.set(0.95, 0, 0);
+            headGroup.add(rightEar);
+
+            const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.38), goldMat);
+            rod.position.set(0, 0.92, 0);
+            headGroup.add(rod);
+
+            antennaBall = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), pinkMat.clone());
+            antennaBall.position.set(0, 1.14, 0);
+            headGroup.add(antennaBall);
+
+            container.addEventListener('mousedown', (e) => {
+                isDraggingRobot = true;
+                prevRobotMouseX = e.clientX;
+                prevRobotMouseY = e.clientY;
+            });
+            window.addEventListener('mouseup', () => isDraggingRobot = false);
+            window.addEventListener('mousemove', (e) => {
+                if (!isDraggingRobot) return;
+                headGroup.rotation.y = Math.max(-0.65, Math.min(0.65, headGroup.rotation.y + (e.clientX - prevRobotMouseX) * 0.015));
+                headGroup.rotation.x = Math.max(-0.35, Math.min(0.35, headGroup.rotation.x + (e.clientY - prevRobotMouseY) * 0.015));
+                prevRobotMouseX = e.clientX;
+                prevRobotMouseY = e.clientY;
+            });
+        }
+
+        function setRobotMood(mood) {
+            robotMood = mood;
+            moodTimer = 110;
+            if (!leftEye || !rightEye || !antennaBall) return;
+
+            const badge = document.getElementById('robotMoodBadgeText');
+            const dot = document.getElementById('robotStatusDot');
+            const applyColor = (mesh, hex) => {
+                mesh.material.color.setHex(hex);
+                if (mesh.material.emissive) mesh.material.emissive.setHex(hex);
+            };
+
+            if (mood === 'happy') {
+                if (badge) badge.textContent = "¡CORRECTO!";
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-[#39ff14] animate-ping";
+                applyColor(leftEye, 0x39ff14);
+                applyColor(rightEye, 0x39ff14);
+                applyColor(antennaBall, 0x00f2fe);
+                leftBrow.rotation.z = 0.15;
+                rightBrow.rotation.z = -0.15;
+                [-0.21, -0.30, -0.33, -0.30, -0.21].forEach((y, i) => {
+                    mouthSegments[i].position.y = y;
+                    applyColor(mouthSegments[i], 0x39ff14);
+                });
+            } else if (mood === 'thinking') {
+                if (badge) badge.textContent = "OPERANDO...";
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-[#facc15] animate-ping";
+                applyColor(leftEye, 0xfacc15);
+                applyColor(rightEye, 0x00f2fe);
+                applyColor(antennaBall, 0xfacc15);
+                leftBrow.rotation.z = -0.16;
+                rightBrow.rotation.z = 0.2;
+                mouthSegments.forEach((seg, i) => {
+                    seg.position.y = -0.28 + (i % 2 === 0 ? 0.03 : -0.03);
+                    applyColor(seg, 0xfacc15);
+                });
+            } else if (mood === 'alert') {
+                if (badge) badge.textContent = "REVISAR";
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-[#fe0979] animate-ping";
+                applyColor(leftEye, 0xfe0979);
+                applyColor(rightEye, 0xfe0979);
+                applyColor(antennaBall, 0xfe0979);
+                leftBrow.rotation.z = -0.26;
+                rightBrow.rotation.z = 0.26;
+                [-0.33, -0.26, -0.24, -0.26, -0.33].forEach((y, i) => {
+                    mouthSegments[i].position.y = y;
+                    applyColor(mouthSegments[i], 0xfe0979);
+                });
+            } else if (mood === 'celebrate') {
+                if (badge) badge.textContent = "¡META 10/10!";
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-[#facc15] animate-ping";
+                applyColor(leftEye, 0xfacc15);
+                applyColor(rightEye, 0xfacc15);
+                applyColor(antennaBall, 0x39ff14);
+                [-0.18, -0.29, -0.34, -0.29, -0.18].forEach((y, i) => {
+                    mouthSegments[i].position.y = y;
+                    applyColor(mouthSegments[i], 0xfacc15);
+                });
+            }
+        }
+
+        function animateRobot3D() {
+            requestAnimationFrame(animateRobot3D);
+            const t = performance.now() * 0.0035;
+            if (headGroup) {
+                headGroup.position.y = Math.sin(t) * 0.06;
+                const isBlinking = Math.sin(t * 0.9) > 0.985;
+                if (leftEye && rightEye) {
+                    const targetScaleY = isBlinking ? 0.12 : 1.15;
+                    leftEye.scale.y += (targetScaleY - leftEye.scale.y) * 0.35;
+                    rightEye.scale.y += (targetScaleY - rightEye.scale.y) * 0.35;
+                }
+                if (moodTimer > 0) {
+                    moodTimer--;
+                    if (robotMood === 'celebrate') {
+                        headGroup.rotation.y = Math.sin(t * 2.2) * 0.25;
+                    } else if (robotMood === 'alert') {
+                        headGroup.rotation.y = Math.sin(t * 10) * 0.2;
+                    }
+                } else if (!isDraggingRobot) {
+                    headGroup.rotation.y += (Math.sin(t * 0.6) * 0.16 - headGroup.rotation.y) * 0.05;
+                    headGroup.rotation.x += (Math.cos(t * 0.4) * 0.04 - headGroup.rotation.x) * 0.05;
+                }
+            }
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        function parseMathValue(str) {
+            if (str === null || str === undefined) return NaN;
+            const clean = String(str).trim().replace(',', '.').replace('−', '-');
+            if (clean === '') return NaN;
+            if (clean.includes('/')) {
+                const parts = clean.split('/');
+                if (parts.length !== 2) return NaN;
+                const num = parseFloat(parts[0]);
+                const den = parseFloat(parts[1]);
+                if (isNaN(num) || isNaN(den) || den === 0) return NaN;
+                return num / den;
+            }
+            return parseFloat(clean);
+        }
+
+        function formatNumberClean(val) {
+            if (Number.isInteger(val)) return String(val);
+            return Number(val.toFixed(2)).toString();
+        }
+
+        function initRowsState() {
+            rowsState = Array.from({ length: 10 }, () => ({
+                xRaw: '',
+                yRaw: '',
+                xVal: null,
+                yVal: null,
+                isValid: false,
+                stepText: ''
+            }));
+        }
+
+        function formatStepBreakdownHTML(ex, xVal, stage = 3) {
+            const steps = ex.getStepsForX(xVal);
+            if (stage === 1) {
+                return `<span class="text-cyan-400 font-bold">Paso 1:</span> <span class="math-expr text-white">${steps[0]}</span>`;
+            } else if (stage === 2) {
+                return `<span class="text-yellow-400 font-bold">Paso 2:</span> <span class="math-expr text-white">${steps[0]} → ${steps[1]}</span>`;
+            }
+            return `<span class="text-[#39ff14] font-bold">✓</span> <span class="math-expr text-slate-200">${steps[0]} → ${steps[1]} → <b class="text-[#39ff14]">${steps[2]}</b></span>`;
+        }
+
+        function renderTableRows() {
+            const container = document.getElementById('tableRowsContainer');
+            container.innerHTML = '';
+
+            rowsState.forEach((row, idx) => {
+                const rowEl = document.createElement('div');
+                rowEl.id = `tableRow-${idx}`;
+                rowEl.className = "grid grid-cols-12 gap-2 items-center px-2.5 py-2 rounded-2xl hover:bg-white/5 transition-colors";
+
+                rowEl.innerHTML = `
+                    <div class="col-span-1 text-center font-black text-xs sm:text-sm text-slate-400">
+                        ${idx + 1}
+                    </div>
+                    <div class="col-span-2">
+                        <input
+                            type="text"
+                            inputmode="decimal"
+                            id="inputX-${idx}"
+                            value="${row.xRaw}"
+                            placeholder="x"
+                            oninput="onCellChange(${idx})"
+                            class="point-input math-expr font-bold w-full rounded-xl py-2 px-1 text-center text-sm sm:text-base"
+                        />
+                    </div>
+                    <div class="col-span-7 flex flex-col gap-1">
+                        <input
+                            type="text"
+                            inputmode="decimal"
+                            id="inputY-${idx}"
+                            value="${row.yRaw}"
+                            placeholder="Escribe y"
+                            oninput="onCellChange(${idx})"
+                            class="point-input math-expr font-bold w-full rounded-xl py-1.5 px-2.5 text-center text-sm sm:text-base"
+                        />
+                        <div id="stepBoxY-${idx}" class="text-[11px] sm:text-xs text-slate-300 px-1 truncate">
+                            ${row.stepText}
+                        </div>
+                    </div>
+                    <div class="col-span-2 flex justify-center" id="statusCell-${idx}">
+                        <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-400 text-xs">
+                            <i class="fa-solid fa-minus"></i>
+                        </span>
+                    </div>
+                `;
+                container.appendChild(rowEl);
+            });
+        }
+
+        function onCellChange(idx, suppressAudio = false) {
+            const ex = EXERCISES[currentExIndex];
+            const inputX = document.getElementById(`inputX-${idx}`);
+            const inputY = document.getElementById(`inputY-${idx}`);
+            const statusCell = document.getElementById(`statusCell-${idx}`);
+            const stepBoxY = document.getElementById(`stepBoxY-${idx}`);
+
+            const xRaw = inputX.value;
+            const yRaw = inputY.value;
+
+            rowsState[idx].xRaw = xRaw;
+            rowsState[idx].yRaw = yRaw;
+
+            const xNum = parseMathValue(xRaw);
+            const yNum = parseMathValue(yRaw);
+
+            if (!isNaN(xNum)) {
+                inputX.classList.add('valid-input');
+                inputX.classList.remove('invalid-input');
+            } else {
+                inputX.classList.remove('valid-input', 'invalid-input');
+            }
+
+            if (isNaN(xNum) || yRaw.trim() === '') {
+                rowsState[idx].isValid = false;
+                rowsState[idx].xVal = !isNaN(xNum) ? xNum : null;
+                rowsState[idx].yVal = null;
+                inputY.classList.remove('valid-input', 'invalid-input', 'solving-input');
+                if (stepBoxY) {
+                    const preview = !isNaN(xNum) ? ex.getStepsForX(xNum)[0] : '';
+                    stepBoxY.innerHTML = `<span class="text-slate-400">Sustitución:</span> <span class="math-expr text-slate-200">${preview}</span>`;
+                }
+                statusCell.innerHTML = `
+                    <span class="w-7 h-7 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-minus"></i>
+                    </span>
+                `;
+                updateProgressAndGraph();
+                return;
+            }
+
+            if (isNaN(yNum)) {
+                rowsState[idx].isValid = false;
+                inputY.classList.add('invalid-input');
+                inputY.classList.remove('valid-input');
+                return;
+            }
+
+            const expectedY = ex.fn(xNum);
+            const isCorrect = Math.abs(yNum - expectedY) < 0.05;
+
+            if (isCorrect) {
+                const wasAlreadyValid = rowsState[idx].isValid && rowsState[idx].xVal === xNum;
+                rowsState[idx].xVal = xNum;
+                rowsState[idx].yVal = expectedY;
+                rowsState[idx].isValid = true;
+
+                inputX.classList.add('valid-input');
+                inputY.classList.add('valid-input');
+                inputY.classList.remove('invalid-input', 'solving-input');
+
+                const fullStepsHTML = formatStepBreakdownHTML(ex, xNum, 3);
+                rowsState[idx].stepText = fullStepsHTML;
+                if (stepBoxY) stepBoxY.innerHTML = fullStepsHTML;
+
+                statusCell.innerHTML = `
+                    <span class="w-7 h-7 rounded-full bg-[#39ff14] text-black flex items-center justify-center text-xs font-black shadow-[0_0_10px_#39ff14]">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                `;
+
+                if (!wasAlreadyValid && !suppressAudio) {
+                    const validCount = rowsState.filter(r => r.isValid).length;
+                    playSound('pointValid', validCount - 1);
+                    const stepsArr = ex.getStepsForX(xNum);
+                    updateRobotSpeech(
+                        `¡Punto ${idx + 1} correcto! <span class="math-expr text-cyan-300 mx-1">${stepsArr[0]} → ${stepsArr[1]} → ${stepsArr[2]}</span>. Se graficó (${formatNumberClean(xNum)}, ${formatNumberClean(expectedY)}).`
+                    );
+                }
+            } else {
+                rowsState[idx].isValid = false;
+                rowsState[idx].xVal = xNum;
+                rowsState[idx].yVal = null;
+
+                inputY.classList.remove('valid-input', 'solving-input');
+                inputY.classList.add('invalid-input');
+
+                const hintStep = ex.getStepsForX(xNum);
+                if (stepBoxY) {
+                    stepBoxY.innerHTML = `<span class="text-pink-400 font-bold">Revisa:</span> <span class="math-expr text-white">${hintStep[0]} → ${hintStep[1]}</span>`;
+                }
+
+                statusCell.innerHTML = `
+                    <span class="w-7 h-7 rounded-full bg-[#fe0979] text-white flex items-center justify-center text-xs font-black">
+                        <i class="fa-solid fa-xmark"></i>
+                    </span>
+                `;
+
+                if (!suppressAudio && yRaw.length >= String(expectedY).length) {
+                    playSound('error');
+                    updateRobotSpeech(`Revisa la fila ${idx + 1}: para x = ${formatNumberClean(xNum)}, la operación es <span class="math-expr text-yellow-300 ml-1">${hintStep[0]} → ${hintStep[1]}</span>.`);
+                }
+            }
+
+            updateProgressAndGraph(suppressAudio);
+        }
+
+        function updateRobotSpeech(htmlText) {
+            document.getElementById('robotMessage').innerHTML = htmlText;
+        }
+
+        function giveNextHint() {
+            const ex = EXERCISES[currentExIndex];
+            const nextIdx = rowsState.findIndex(r => !r.isValid);
+            if (nextIdx === -1) {
+                playSound('switch');
+                setRobotMood('celebrate');
+                updateRobotSpeech(`¡Ya tienes los 10 puntos! Observa los resultados de intersecciones y vértice en la parte inferior.`);
+                return;
+            }
+            let xToUse = parseMathValue(document.getElementById(`inputX-${nextIdx}`).value);
+            if (isNaN(xToUse)) {
+                xToUse = ex.suggestedX[nextIdx];
+                document.getElementById(`inputX-${nextIdx}`).value = xToUse;
+            }
+            const steps = ex.getStepsForX(xToUse);
+            const stepBoxY = document.getElementById(`stepBoxY-${nextIdx}`);
+            if (stepBoxY) stepBoxY.innerHTML = formatStepBreakdownHTML(ex, xToUse, 2);
+            playSound('switch');
+            setRobotMood('thinking');
+            updateRobotSpeech(`Pista en fila ${nextIdx + 1}: <span class="math-expr text-yellow-300 ml-1">${steps[0]} → ${steps[1]} → ${steps[2]}</span>.`);
+            document.getElementById(`inputY-${nextIdx}`).focus();
+        }
+
+        function animateRowStepByStep(idx, chosenX, onDoneCallback) {
+            const ex = EXERCISES[currentExIndex];
+            const inputX = document.getElementById(`inputX-${idx}`);
+            const inputY = document.getElementById(`inputY-${idx}`);
+            const stepBoxY = document.getElementById(`stepBoxY-${idx}`);
+            const rowEl = document.getElementById(`tableRow-${idx}`);
+
+            const steps = ex.getStepsForX(chosenX);
+            const finalY = ex.fn(chosenX);
+
+            if (rowEl) rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            inputX.value = chosenX;
+            inputX.classList.add('valid-input');
+            inputY.classList.remove('valid-input', 'invalid-input');
+            inputY.classList.add('solving-input');
+            inputY.value = steps[0].replace('y = ', '');
+            if (stepBoxY) stepBoxY.innerHTML = formatStepBreakdownHTML(ex, chosenX, 1);
+            setRobotMood('thinking');
+            updateRobotSpeech(`Calculando fila ${idx + 1}: <span class="math-expr text-cyan-300 ml-1">${steps[0]}</span>`);
+
+            const t1 = setTimeout(() => {
+                inputY.value = steps[1].replace('y = ', '');
+                if (stepBoxY) stepBoxY.innerHTML = formatStepBreakdownHTML(ex, chosenX, 2);
+                updateRobotSpeech(`Operando fila ${idx + 1}: <span class="math-expr text-yellow-300 ml-1">${steps[1]}</span>`);
+            }, 180);
+
+            const t2 = setTimeout(() => {
+                inputY.classList.remove('solving-input');
+                inputY.value = formatNumberClean(finalY);
+                onCellChange(idx, false);
+                if (onDoneCallback) onDoneCallback();
+            }, 360);
+
+            autoSolveTimers.push(t1, t2);
+        }
+
+        function autoCompleteDemoOneRow() {
+            clearAutoSolveTimers();
+            const ex = EXERCISES[currentExIndex];
+            const idx = rowsState.findIndex(r => !r.isValid);
+            if (idx === -1) return;
+
+            const usedX = rowsState.filter(r => r.isValid).map(r => r.xVal);
+            let chosenX = parseMathValue(document.getElementById(`inputX-${idx}`).value);
+            if (isNaN(chosenX) || usedX.includes(chosenX)) {
+                chosenX = ex.suggestedX.find(x => !usedX.includes(x)) ?? ex.suggestedX[idx];
+            }
+            animateRowStepByStep(idx, chosenX, null);
+        }
+
+        function completeAllRows() {
+            clearAutoSolveTimers();
+            const ex = EXERCISES[currentExIndex];
+            ex.suggestedX.forEach((xVal, idx) => {
+                const timer = setTimeout(() => {
+                    animateRowStepByStep(idx, xVal, () => {
+                        if (idx === 9) setRobotMood('celebrate');
+                    });
+                }, idx * 400);
+                autoSolveTimers.push(timer);
+            });
+        }
+
+        function resetCurrentExercise() {
+            clearAutoSolveTimers();
+            playSound('switch');
+            selectExercise(currentExIndex, true);
+        }
+
+        function updateProgressAndGraph(suppressCelebrationAudio = false) {
+            const ex = EXERCISES[currentExIndex];
+            const validRows = rowsState.filter(r => r.isValid);
+            const count = validRows.length;
+
+            document.getElementById('pointsCounterText').textContent = `${count} / 10 PUNTOS`;
+            document.getElementById('progressBar').style.width = `${(count / 10) * 100}%`;
+
+            const stepBadge = document.getElementById('stepBadge');
+            const banner = document.getElementById('parabolaCompleteBanner');
+            const subtitle = document.getElementById('resultsStatusSubtitle');
+            const symBadge = document.getElementById('symmetryBadge');
+
+            if (count < 10) {
+                if (parabolaAnimFrame) cancelAnimationFrame(parabolaAnimFrame);
+                parabolaProgress = 0;
+                banner.classList.add('hidden');
+                stepBadge.textContent = count === 0 ? "PASO 1 DE 3" : `PASO 2 DE 3 (${count}/10)`;
+
+                subtitle.textContent = `Faltan ${10 - count} punto(s) para trazar la parábola y mostrar las coordenadas de intersección y vértice.`;
+                symBadge.textContent = "EJE DE SIMETRÍA: PENDIENTE";
+                document.getElementById('resXIntercept').innerHTML = `<span class="text-slate-500 text-lg font-sans font-bold">Pendiente (${count}/10)</span>`;
+                document.getElementById('resYIntercept').innerHTML = `<span class="text-slate-500 text-lg font-sans font-bold">Pendiente (${count}/10)</span>`;
+                document.getElementById('resVertex').innerHTML = `<span class="text-slate-500 text-lg font-sans font-bold">Pendiente (${count}/10)</span>`;
+                drawCartesianPlane();
+            } else {
+                stepBadge.textContent = "¡COMPLETADO 10/10!";
+                banner.classList.remove('hidden');
+
+                subtitle.textContent = "¡Parábola completada! Aquí tienes las coordenadas exactas de intersección y el vértice:";
+                symBadge.innerHTML = `EJE DE SIMETRÍA: <span class="math-expr ml-1">${ex.symmetry}</span>`;
+
+                document.getElementById('resXIntercept').innerHTML = `<span class="text-[#fe0979]">${ex.xInterceptsText}</span>`;
+                document.getElementById('resXInterceptDesc').textContent = ex.xInterceptsDetail;
+
+                document.getElementById('resYIntercept').innerHTML = `<span class="text-[#00f2fe]">${ex.yInterceptText}</span>`;
+                document.getElementById('resYInterceptDesc').textContent = ex.yInterceptDetail;
+
+                document.getElementById('vertexTypeLabel').textContent = `VÉRTICE (${ex.vertex.type.toUpperCase()})`;
+                document.getElementById('resVertex').innerHTML = `<span class="text-[#facc15]">(${ex.vertex.x}, ${ex.vertex.y})</span>`;
+                document.getElementById('resVertexDesc').textContent = `${ex.vertex.type} de la parábola con eje de simetría en ${ex.symmetry}.`;
+
+                if (!suppressCelebrationAudio && parabolaProgress === 0) {
+                    playSound('completeParabola');
+                    updateRobotSpeech(
+                        `¡Excelente trabajo! Se ha trazado la parábola completa. Revisa abajo las coordenadas de intersección con el eje X, con el eje Y y el vértice.`
+                    );
+                }
+
+                startParabolaCurveAnimation();
+            }
+        }
+
+        function startParabolaCurveAnimation() {
+            if (parabolaAnimFrame) cancelAnimationFrame(parabolaAnimFrame);
+            parabolaProgress = 0;
+
+            function stepAnim() {
+                parabolaProgress += 0.04;
+                if (parabolaProgress >= 1) {
+                    parabolaProgress = 1;
+                    drawCartesianPlane();
+                    return;
+                }
+                drawCartesianPlane();
+                parabolaAnimFrame = requestAnimationFrame(stepAnim);
+            }
+            stepAnim();
+        }
+
+        function getBoundsForCurrentState() {
+            const ex = EXERCISES[currentExIndex];
+            let xMin = ex.xMin, xMax = ex.xMax, yMin = ex.yMin, yMax = ex.yMax;
+
+            rowsState.forEach(r => {
+                if (r.isValid && r.xVal !== null && r.yVal !== null) {
+                    if (r.xVal - 1 < xMin) xMin = Math.floor(r.xVal - 1);
+                    if (r.xVal + 1 > xMax) xMax = Math.ceil(r.xVal + 1);
+                    if (r.yVal - 2 < yMin) yMin = Math.floor(r.yVal - 3);
+                    if (r.yVal + 2 > yMax) yMax = Math.ceil(r.yVal + 3);
+                }
+            });
+            return { xMin, xMax, yMin, yMax };
+        }
+
+        function drawCartesianPlane() {
+            const canvas = document.getElementById('cartesianCanvas');
+            if (!canvas) return;
+            const wrapper = document.getElementById('graphWrapper');
+            const rect = wrapper.getBoundingClientRect();
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            const ctx = canvas.getContext('2d');
+            ctx.save();
+            ctx.scale(dpr, dpr);
+
+            const W = rect.width;
+            const H = rect.height;
+            const pad = 38;
+
+            ctx.fillStyle = "#070710";
+            ctx.fillRect(0, 0, W, H);
+
+            const ex = EXERCISES[currentExIndex];
+            const { xMin, xMax, yMin, yMax } = getBoundsForCurrentState();
+
+            const toScreenX = (x) => pad + ((x - xMin) / (xMax - xMin)) * (W - pad * 2);
+            const toScreenY = (y) => (H - pad) - ((y - yMin) / (yMax - yMin)) * (H - pad * 2);
+
+            // Cuadrícula sutil y descansada para la vista
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.12)";
+            ctx.fillStyle = "#94a3b8";
+            ctx.font = "bold 11px sans-serif";
+
+            for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x += ex.xStep) {
+                const sx = toScreenX(x);
+                ctx.beginPath();
+                ctx.moveTo(sx, pad / 2);
+                ctx.lineTo(sx, H - pad / 2);
+                ctx.stroke();
+            }
+
+            for (let y = Math.ceil(yMin / ex.yStep) * ex.yStep; y <= Math.floor(yMax); y += ex.yStep) {
+                const sy = toScreenY(y);
+                ctx.beginPath();
+                ctx.moveTo(pad / 2, sy);
+                ctx.lineTo(W - pad / 2, sy);
+                ctx.stroke();
+            }
+
+            // Ejes principales X y Y
+            const originX = toScreenX(0);
+            const originY = toScreenY(0);
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#475569";
+
+            ctx.beginPath();
+            ctx.moveTo(pad / 2, originY);
+            ctx.lineTo(W - pad / 2, originY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(originX, pad / 2);
+            ctx.lineTo(originX, H - pad / 2);
+            ctx.stroke();
+
+            // Numeración limpia en los ejes
+            ctx.fillStyle = "#cbd5e1";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x += ex.xStep) {
+                if (x === 0) continue;
+                const sx = toScreenX(x);
+                const labelY = Math.min(Math.max(originY + 6, 8), H - 20);
+                ctx.fillText(x, sx, labelY);
+            }
+
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+            for (let y = Math.ceil(yMin / ex.yStep) * ex.yStep; y <= Math.floor(yMax); y += ex.yStep) {
+                if (y === 0) continue;
+                const sy = toScreenY(y);
+                const labelX = Math.min(Math.max(originX - 8, 28), W - 10);
+                ctx.fillText(y, labelX, sy);
+            }
+
+            // Letras X y Y de los ejes
+            ctx.fillStyle = "#00f2fe";
+            ctx.font = "900 13px sans-serif";
+            ctx.fillText("X", W - 14, Math.min(Math.max(originY - 14, 15), H - 15));
+            ctx.fillText("Y", Math.min(Math.max(originX + 18, 20), W - 20), 14);
+
+            const validPoints = rowsState
+                .filter(r => r.isValid && r.xVal !== null && r.yVal !== null)
+                .sort((a, b) => a.xVal - b.xVal);
+
+            // Línea guía punteada mientras se van colocando los puntos
+            if (validPoints.length >= 2 && validPoints.length < 10) {
+                ctx.save();
+                ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "rgba(0, 242, 254, 0.5)";
+                ctx.beginPath();
+                validPoints.forEach((pt, i) => {
+                    const sx = toScreenX(pt.xVal);
+                    const sy = toScreenY(pt.yVal);
+                    if (i === 0) ctx.moveTo(sx, sy);
+                    else ctx.lineTo(sx, sy);
+                });
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Al completar los 10 puntos: Trazar parábola continua y marcadores limpios sin texto amontonado
+            if (validPoints.length === 10 && parabolaProgress > 0) {
+                const symX = toScreenX(ex.vertex.x);
+                ctx.save();
+                ctx.setLineDash([6, 6]);
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = "rgba(250, 204, 21, 0.55)";
+                ctx.beginPath();
+                ctx.moveTo(symX, pad / 2);
+                ctx.lineTo(symX, H - pad / 2);
+                ctx.stroke();
+                ctx.restore();
+
+                ctx.save();
+                ctx.lineWidth = 3.5;
+                ctx.strokeStyle = "#00f2fe";
+                ctx.shadowColor = "#00f2fe";
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+
+                const totalSamples = 180;
+                const maxSample = Math.floor(totalSamples * parabolaProgress);
+                let started = false;
+
+                for (let i = 0; i <= maxSample; i++) {
+                    const ratio = i / totalSamples;
+                    const mathX = xMin + ratio * (xMax - xMin);
+                    const mathY = ex.fn(mathX);
+
+                    if (mathY >= yMin - 15 && mathY <= yMax + 15) {
+                        const sx = toScreenX(mathX);
+                        const sy = toScreenY(mathY);
+                        if (!started) {
+                            ctx.moveTo(sx, sy);
+                            started = true;
+                        } else {
+                            ctx.lineTo(sx, sy);
+                        }
+                    } else {
+                        started = false;
+                    }
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Dibujar los puntos ingresados (Verde)
+            validPoints.forEach((pt) => {
+                const sx = toScreenX(pt.xVal);
+                const sy = toScreenY(pt.yVal);
+
+                ctx.save();
+                ctx.fillStyle = "#39ff14";
+                ctx.shadowColor = "#39ff14";
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = "#ffffff";
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // Si los 10 puntos están completos, resaltar los puntos clave con sus colores (sin cajas de texto encima)
+            if (validPoints.length === 10 && parabolaProgress >= 0.95) {
+                // Corte Y (Cian)
+                drawCleanKeyDot(ctx, toScreenX(ex.yInterceptPoint.x), toScreenY(ex.yInterceptPoint.y), "#00f2fe", 7);
+                // Cortes X (Rosa)
+                ex.xInterceptPoints.forEach((pt) => {
+                    drawCleanKeyDot(ctx, toScreenX(pt.x), toScreenY(pt.y), "#fe0979", 7);
+                });
+                // Vértice (Amarillo)
+                drawCleanKeyDot(ctx, toScreenX(ex.vertex.x), toScreenY(ex.vertex.y), "#facc15", 8);
+            }
+
+            ctx.restore();
+        }
+
+        function drawCleanKeyDot(ctx, sx, sy, colorHex, radius) {
+            ctx.save();
+            ctx.fillStyle = colorHex;
+            ctx.shadowColor = colorHex;
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#090914";
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function selectExercise(index, isReset = false) {
+            clearAutoSolveTimers();
+            currentExIndex = index;
+            const ex = EXERCISES[index];
+
+            for (let i = 0; i < 4; i++) {
+                const btn = document.getElementById(`exBtn-${i}`);
+                if (!btn) continue;
+                if (i === index) {
+                    btn.className = "px-4 py-2 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-b from-cyan-400 to-cyan-600 text-black border-b-4 border-cyan-800 shadow-[0_0_20px_rgba(0,242,254,0.4)]";
+                } else {
+                    btn.className = "px-4 py-2 rounded-xl font-bold text-xs sm:text-sm bg-slate-800/90 text-slate-300 border border-slate-600 hover:border-cyan-400";
+                }
+            }
+
+            document.getElementById('exerciseTitleBadge').textContent = ex.title;
+            document.getElementById('scaleBadge').textContent = ex.rangeNote;
+            document.getElementById('equationDisplay').innerHTML = ex.equationHTML;
+
+            initRowsState();
+            ex.suggestedX.forEach((xVal, idx) => {
+                rowsState[idx].xRaw = String(xVal);
+                rowsState[idx].xVal = xVal;
+                rowsState[idx].stepText = `<span class="text-slate-400">Sustitución:</span> <span class="math-expr text-slate-200">${ex.getStepsForX(xVal)[0]}</span>`;
+            });
+
+            renderTableRows();
+            ex.suggestedX.forEach((_, idx) => {
+                const inputX = document.getElementById(`inputX-${idx}`);
+                if (inputX) inputX.classList.add('valid-input');
+            });
+
+            if (!isReset) playSound('switch');
+            setRobotMood('happy');
+            updateRobotSpeech(
+                `Calcula los 10 valores de <span class="math-expr math-var text-pink-400 mx-1">y</span> para la función <span class="math-expr text-yellow-400 mx-1">${ex.equationHTML}</span> o pulsa <b>"Resolver los 10 puntos"</b>.`
+            );
+
+            updateProgressAndGraph(true);
+        }
+
+        function onResizeRobotAndGraph() {
+            const container = document.getElementById('robotCanvasContainer');
+            if (container && renderer && camera) {
+                const w = container.clientWidth || 144;
+                const h = container.clientHeight || 144;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            }
+            drawCartesianPlane();
+        }
+
+        function initCanvasPointerHover() {
+            const canvas = document.getElementById('cartesianCanvas');
+            const badge = document.getElementById('hoverCoordsBadge');
+            const wrapper = document.getElementById('graphWrapper');
+
+            function handleMove(clientX, clientY) {
+                const rect = wrapper.getBoundingClientRect();
+                const pad = 38;
+                const { xMin, xMax, yMin, yMax } = getBoundsForCurrentState();
+
+                const relX = clientX - rect.left;
+                const relY = clientY - rect.top;
+
+                const mathX = xMin + ((relX - pad) / (rect.width - pad * 2)) * (xMax - xMin);
+                const mathY = yMin + (((rect.height - pad) - relY) / (rect.height - pad * 2)) * (yMax - yMin);
+
+                badge.classList.remove('hidden');
+                badge.textContent = `(${mathX.toFixed(1)}, ${mathY.toFixed(1)})`;
+            }
+
+            canvas.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+            canvas.addEventListener('mouseleave', () => badge.classList.add('hidden'));
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1) handleMove(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+            canvas.addEventListener('touchend', () => badge.classList.add('hidden'));
+        }
+
+        window.onload = function () {
+            initRobot3D();
+            animateRobot3D();
+            initCanvasPointerHover();
+            selectExercise(0, true);
+            window.addEventListener('resize', onResizeRobotAndGraph);
+        };
+    </script>
+</body>
+</html>
